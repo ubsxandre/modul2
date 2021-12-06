@@ -5,20 +5,22 @@ from App.gaji import gajiController
 from flask import request, jsonify
 
 
+
 # ===================================== GET (SELECT)
 # ------------------------ GET Karyawan (Data karyawan)
 def tabel_karyawan_get():   # Show all data karyawan without condition
   try:
     cur = mysql.connection.cursor(curMysql)     # akses ke database
-    cur.execute('''SELECT nik, first_name, last_name, golongan, tgl_kerja, status_aktif, tgl_input 
-                FROM zzz_dummy_table 
-                ORDER BY tgl_input''') 
+    cur.execute('''SELECT a.nik, a.first_name, a.last_name, a.golongan, a.tgl_kerja, b.status as status_aktif, a.tgl_input 
+                FROM zzz_dummy_table a , zzz_dummy_sts_aktif b
+                WHERE a.status_aktif = b.id_status 
+                ORDER BY a.nik''') 
     data = cur.fetchall()               # Fetch data dari query Select
     cur.close()
     return response.success(data, "success")
     # return str(data)
     # return 'tes'
-  except Exception as e:
+  except Exception as e: 
     print(e)
 
 def tabel_karyawan_nik_get(nik):   # Show all data karyawan with condition NIK
@@ -28,7 +30,7 @@ def tabel_karyawan_nik_get(nik):   # Show all data karyawan with condition NIK
                 FROM zzz_dummy_table
                 WHERE status_aktif = '1'
                   AND nik = %s
-                ORDER BY tgl_input''', (nik,)) 
+                ORDER BY nik''', (nik,)) 
     data = cur.fetchone()               # Fetch data dari query Select
     cur.close()
     return data
@@ -249,6 +251,10 @@ def deleteKaryawan(nik):
   except Exception as e:
     print(e)
     
+  
+
+
+
     
 
 # 1. Lama dalam searching yang dikatakan konsultan tentang tidak menggunakan mvc.

@@ -21,10 +21,10 @@
 						<a type="button" class="nav-link" href="/tabel-karyawan">Tabel Karyawan</a>
 					</li>
 					<li class="nav-item">
-					<a type="button" class="nav-link" href="/tabel-gaji">Tabel Gaji</a>
+						<a type="button" class="nav-link" href="/tabel-gaji">Tabel Gaji</a>
 					</li>
 					<li class="nav-item">
-						<a class="nav-link" href="/report-gaji-karyawan">Report Gaji Karyawan</a>
+						<a type="button" class="nav-link" href="/report-gaji-karyawan">Report Gaji Karyawan</a>
 					</li>
 				</ul>
 			</div>

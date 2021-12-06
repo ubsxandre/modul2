@@ -84,6 +84,7 @@
   <h2>Tabel Karyawan</h2>
   
   <button type="button" class="btn badge-pill badge-primary" data-toggle="modal" data-target="#myModal" > Tambah karyawan</button>
+  <a type="button" class="btn badge-pill badge-info" href="/karyawan-export-excel" > Export to Excel</a>
   
   <div>
     <table class="table table-striped">
@@ -93,6 +94,7 @@
           <th>First Name</th>
           <th>Last Name</th>
           <th>Golongan</th>
+          <th>Status Aktif</th>
           <th>Action</th>
         </tr>
       </thead> 
@@ -102,6 +104,7 @@
           <td>{{row.1}}</td>
           <td>{{row.2}}</td>
           <td>{{row.3}}</td>
+          <td>{{row.4}}</td>
           <td>
             <a href="/update/{{row.0}}" data-toggle="modal" data-target="#modaledit{{row.0}}" class="btn btn-outline-info" >Edit</a>
             <a href="/delete/{{row.0}}"  onclick="return confirm('Yakin delete {{row.0}} ?')" class="btn btn-outline-danger" >Delete</a>
@@ -143,10 +146,18 @@
                           <input type="text" name="golongan" value="{{row.3}}" id="golongan" required>
                         </div>
                         <div class="form-group" >
+                          <h6 for="sts_aktif" >Status Aktif</h6>
+                          <select name="sts_aktif" class="custom-select">
+                            <option value="{{row.6}}" selected disabled>{{row.4}}</option>
+                            <option value="1">Aktif</option>
+                            <option value="0">Tidak Aktif</option>
+                          </select>
+                        </div>
+                        <div class="form-group" >
                           <h6 for="nik" >Tanggal Mulai Kerja</h6>
                           <i class="fas fa-laugh"></i>
                           </label>
-                          <input type="datetime-local" value="{{row.4.strftime('%Y-%m-%d %H:%M:%S')}}" name="tgl_kerja" id="tgl_kerja" required>
+                          <input type="datetime-local" value="{{row.5.strftime('%Y-%m-%dT%H:%M:%S')}}" name="tgl_kerja" id="tgl_kerja" required>
                         </div>
                         <br>
                         <div class="form-group" >

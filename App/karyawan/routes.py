@@ -1,10 +1,18 @@
 from MySQLdb import DATETIME
+from flask.json import dump
 from App import app  # --- import app(variable) dari file App/_init_.py yang sudah di deklarasi yang akan di gunakan di route --- #
 from App import mysql, curMysql
 from App.karyawan import karyawanController
-from flask import render_template, url_for, redirect, request, flash
+from flask import render_template, url_for, redirect, request, flash, send_file, jsonify
 # from flask_mysqldb import MySQL # library untuk konek ke MySQL
 # import MySQLdb.cursors
+import numpy as np
+import pandas as pd
+# import xlrd
+# import xlsxwriter
+# import flask_excel as excel
+# import pyexcel as p
+from io import BytesIO
 
 # mysql = MySQL(app)
 
@@ -23,7 +31,10 @@ from flask import render_template, url_for, redirect, request, flash
 @app.route('/tabel-karyawan')         # URL 127.0.0.1:5000/tabel-karyawan untuk menampilkan data karyawan dari database
 def tabelKaryawan():                          # function
   cur = mysql.connection.cursor()     # akses ke database
-  cur.execute('SELECT NIK, FIRST_NAME, LAST_NAME, GOLONGAN, TGL_KERJA, STATUS_AKTIF, TGL_INPUT FROM zzz_dummy_table ORDER BY tgl_input') 
+  cur.execute('''SELECT a.nik, a.first_name, a.last_name, a.golongan, b.status as status_aktif, a.tgl_kerja, a.status_aktif
+                FROM zzz_dummy_table a , zzz_dummy_sts_aktif b
+                WHERE a.status_aktif = b.id_status 
+                ORDER BY a.nik''') 
   #cur.execute('SELECT * FROM zzz_dummy_table ORDER BY tgl_input')
   data=cur.fetchall()                 # Fetch data dari query Select
   cur.close()
@@ -92,15 +103,17 @@ def update():
         ln = request.form['last_name']
         gol = request.form['golongan']
         tgl_kerja = request.form['tgl_kerja']
+        sts_aktif = request.form['sts_aktif']
         
         cur = mysql.connection.cursor()
         cur.execute("""
                UPDATE zzz_dummy_table
                SET FIRST_NAME=%s,
                   LAST_NAME=%s,
-                  GOLONGAN=%s
+                  GOLONGAN=%s,
+                  STATUS_AKTIF=%s
                WHERE nik=%s
-            """, (fn, ln, gol, nik))
+            """, (fn, ln, gol, sts_aktif, nik))
         flash("Data Karyawan Updated Successfully")
         mysql.connection.commit()
         return redirect(url_for('tabelKaryawan'))
@@ -111,6 +124,85 @@ def update():
 #                           </label>
 #                           <input type="datetime-local" value="{{row.4.strftime('%Y-%m-%d %H:%M:%S')}}" name="tgl_kerja" id="tgl_kerja" required>
 #                         </div>
+
+# ============================================ Report / Combine data
+# --------------------------------------------
+
+@app.route('/report-gaji-karyawan')
+def report_gaji_karyawan():             # function untuk menampilkan data hasil combine dari tabel karyawan dan tabel gaji
+  cur = mysql.connection.cursor()
+  cur.execute('''SELECT a.NIK,
+                CONCAT(a.FIRST_NAME, a.LAST_NAME) AS NAMA,
+                a.GOLONGAN,
+                b.TANGGAL_GAJIAN,
+                b.GAJI_KE,
+                b.SALARY,
+                DATE_FORMAT(A.TGL_KERJA ,'%Y-%m-%d') AS TGL_MASUK_KERJA,
+                c.status AS STATUS_KARYAWAN
+            FROM zzz_dummy_table a, zzz_dummy_salary b, zzz_dummy_sts_aktif c
+            WHERE a.NIK = b.NIK
+              AND a.status_aktif = c.id_status
+            ORDER BY A.NIK, B.GAJI_KE;''')
+  #cur.execute('SELECT * FROM zzz_dummy_table ORDER BY tgl_input')
+  data=cur.fetchall()
+  cur.close()
+  return render_template('karyawan/report_karyawan.php', dummy = data)
+
+
+# ====================================== Ecport to excel
+@app.route('/karyawan-export-excel')
+def exprt_excel():
+  # return redirect(url_for('tabelGaji'))
+
+    ## create a random Pandas dataframe
+    # df_1 = pd.DataFrame(np.random.randint(0,10,size=(10, 4)), columns=list('ABCD'))
+    cur = mysql.connect
+    df_1 = pd.read_sql_query('''SELECT a.nik, a.first_name, a.last_name, a.golongan, a.tgl_kerja, b.status as status_aktif, a.tgl_input 
+                FROM zzz_dummy_table a , zzz_dummy_sts_aktif b
+                WHERE a.status_aktif = b.id_status 
+                ORDER BY a.nik''', cur)   # sementara tanpa filter dulu, jadi export whole data from some table 
+
+    #create an output stream
+    output = BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+
+    #taken from the original question
+    df_1.to_excel(writer, startrow = 0, merge_cells = False, sheet_name = "Sheet_1")
+    workbook = writer.book
+    worksheet = writer.sheets["Sheet_1"]
+    format = workbook.add_format()
+    format.set_bg_color('#eeeeee')
+    worksheet.set_column(1,9,28)
+
+    #the writer has done its job
+    writer.close()
+
+    #go back to the beginning of the stream
+    output.seek(0)
+
+    #finally return the file
+    return send_file(output, attachment_filename="testing.xlsx", as_attachment=True)
+  
+
+# @app.route('/karyawan-import-excel')
+# def import_excel():
+#   df = pd.read_excel(r'C:/xampp/htdocs/python/coba_read_write_excel/testing.xlsx', sheet_name='Sheet_1')
+#   returns.head()
+  
+  
+
+# @app.route("/karyawan-export-excel", methods=['GET'])     # Cara lain tapi belum jadi
+# def docustomexport():
+#   cur = cur = mysql.connection.cursor(curMysql)
+#   cur.execute('''SELECT a.nik, a.first_name, a.last_name, a.golongan, a.tgl_kerja, b.status as status_aktif, a.tgl_input 
+#                 FROM zzz_dummy_table a , zzz_dummy_sts_aktif b
+#                 WHERE a.status_aktif = b.id_status 
+#                 ORDER BY a.nik''')
+#   query_sets = cur.fetchall()
+#   data = jsonify(query_sets)
+#   return p.get_sheet(records=data)
+#   # return data
+  
 
 
 
@@ -150,4 +242,7 @@ def karsGaji(nik):
     return karyawanController.updateKaryawan(nik)
   else:
     return karyawanController.deleteKaryawan(nik)
+  
+  
+  
   
