@@ -1,3 +1,5 @@
+--= DATABASE SAMA DENGAN YANG DI MODUL SEBELUMNYA =--
+
 - Di APP tidak bisa kalau pakai routes.py
 
 - POST is always for creating a resource ( does not matter if it was duplicated )
