@@ -13,3 +13,4 @@ class zzz_dummy_table(db.Model):
 def __repr__(self):
   return '<zzz_dummy_table {}>'.format(self.name) # return ke Dosen {Andreas} misalnya
   
+ 

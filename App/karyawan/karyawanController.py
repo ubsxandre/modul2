@@ -71,6 +71,7 @@ def tabel_kar_gaji_get(nik):
     # return dataG
   except Exception as e:
     print(e)
+    
 
 def singleDetailKaryGaji(v_karyawan,v_gaji):
   data = {
@@ -87,21 +88,6 @@ def singleDetailKaryGaji(v_karyawan,v_gaji):
     'gaji': v_gaji  # nah detail gaji akan ditempatkan disini, jadi nested di jsonnya. Setiap karyawan akan ditampilkan gajinya
   }
   return data
-
-# def formatArray(datas):
-#   array = []  
-#   for i in datas:
-#     array.append(singleObject(i)) # INGAT pelajaran di w3school tentang Lists, Tuples, Sets, DIctionaries ? nah ini method yang ada di Lists
-#                     # menambahkan di arraynya
-#                     # membuat Function singleDosen dulu
-#   return array
-
-# def singleObject(data):
-#   data={
-#     'isinegaji':data
-#   }
-#   return data
-
   
 ### ==================================================
 ### Ini untuk format menggunakan SQLAlchemy. 

@@ -1,22 +1,21 @@
 import datetime
-from typing import List, Set
 # from MySQLdb import DATETIME
-from flask import json
-from flask.json import dump
-from werkzeug.utils import validate_arguments
+from pandas.io.sql import to_sql
 from App import app, mysql, curMysql, response, db  # --- import app(variable) dari file App/_init_.py yang sudah di deklarasi yang akan di gunakan di route --- #
 from App.karyawan import karyawanController, modelKaryawan
 from App.response import success
-from flask import render_template, url_for, redirect, request, flash, send_file, jsonify
+from flask import json, render_template, url_for, redirect, request, flash, send_file, jsonify, Response
 # from flask_mysqldb import MySQL # library untuk konek ke MySQL
 # import MySQLdb.cursors
 import numpy as np
 import pandas as pd
-import xlrd, csv
+import xlrd, csv, os
 # import xlsxwriter
 # import flask_excel as excel
 # import pyexcel as p
 from io import BytesIO, TextIOWrapper
+import io
+
 
 
 
@@ -33,6 +32,7 @@ from io import BytesIO, TextIOWrapper
 #     return str(rv) # Cetak hasil query ke dalam format string
 
 
+
 # ------------------------------------- Tampilan Master (kodingan lawas dengan view css)
   # yang ini digunakan untuk nampilke data ke html / php (View nya lebih mendingan)
 @app.route('/tabel-karyawan')         # URL 127.0.0.1:5000/tabel-karyawan untuk menampilkan data karyawan dari database
@@ -46,6 +46,7 @@ def tabelKaryawan():                          # function
   data=cur.fetchall()                 # Fetch data dari query Select
   cur.close()
   return render_template('karyawan/tabel-karyawan.php', dummy = data) # redirect ke tabel-karyawan.php
+
 
 
 
@@ -88,6 +89,7 @@ def nginputcoy():
 
 
 
+
 # -------------------------------------------- Delete (kodingan lawas dengan view css)
 
 @app.route('/delete/<string:nik>', methods = ['GET'])
@@ -98,6 +100,9 @@ def delete(nik):
     mysql.connection.commit()
     return redirect(url_for('tabelKaryawan'))
   
+
+
+
 
 # -------------------------------------------- Update (kodingan lawas dengan view css)
 
@@ -132,6 +137,9 @@ def update():
 #                           <input type="datetime-local" value="{{row.4.strftime('%Y-%m-%d %H:%M:%S')}}" name="tgl_kerja" id="tgl_kerja" required>
 #                         </div>
 
+
+
+
 # ============================================ Report / Combine data
 # --------------------------------------------
 
@@ -156,50 +164,19 @@ def report_gaji_karyawan():             # function untuk menampilkan data hasil 
   return render_template('karyawan/report_karyawan.php', dummy = data)
 
 
-# ====================================== Ecport to excel
-@app.route('/karyawan-export-excel')
-def exprt_excel():
-  # return redirect(url_for('tabelGaji'))
-
-    ## create a random Pandas dataframe
-    # df_1 = pd.DataFrame(np.random.randint(0,10,size=(10, 4)), columns=list('ABCD'))
-    cur = mysql.connect
-    df_1 = pd.read_sql_query('''SELECT a.nik, a.first_name, a.last_name, a.golongan, a.tgl_kerja, b.status as status_aktif, a.tgl_input 
-                FROM zzz_dummy_table a , zzz_dummy_sts_aktif b
-                WHERE a.status_aktif = b.id_status 
-                ORDER BY a.nik''', cur)   # sementara tanpa filter dulu, jadi export whole data from some table 
-
-    #create an output stream
-    output = BytesIO()
-    writer = pd.ExcelWriter(output, engine='xlsxwriter')
-
-    #taken from the original question
-    df_1.to_excel(writer, startrow = 0, merge_cells = False, sheet_name = "Sheet_1")
-    workbook = writer.book
-    worksheet = writer.sheets["Sheet_1"]
-    format = workbook.add_format()
-    format.set_bg_color('#eeeeee')
-    worksheet.set_column(1,9,28)
-
-    #the writer has done its job
-    writer.close()
-
-    #go back to the beginning of the stream
-    output.seek(0)
-
-    #finally return the file
-    return send_file(output, attachment_filename="testing.xlsx", as_attachment=True)
 
 
-# --------------------------------- import excel
+
+
+
+# --------------------------------- IMPORT CSV - EXCEL
 
 def transform(text_file_contents):
     return text_file_contents.replace("=", ",")
 
-
-@app.route('/uploadfiles', methods=['POST', 'GET'])
+@app.route('/uploadfiles_csv', methods=['POST', 'GET'])   # Reading data from CSV and save to mysql using sqlalchemy
 # Get the uploaded files
-def uploadfiles():
+def uploadfiles_csv():
     if request.method == 'POST':
         csv_file = request.files['file']
         csv_file = TextIOWrapper(csv_file, encoding='utf-8')
@@ -216,127 +193,159 @@ def uploadfiles():
         return redirect('/tabel-karyawan')
         # return jsonify(v_tgl_kerja)
     return render_template('/karyawan/uploadFileKaryawan.html')
+  
+### Ignore this. Just for exercise !!!
+# @app.route('/uploadfiles_csv', methods=['POST', 'GET'])   # Reading data from CSV and print into cmd
+# # Get the uploaded files
+# def uploadfiles_csv():
+#     if request.method == 'POST':
+#         csv_file = request.files['file']
+#         csv_file = TextIOWrapper(csv_file, encoding='utf-8')
+#         csv_reader = pd.read_csv(csv_file)
+#         for row in csv_reader:
+#             sysdate = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+#             # v_tgl_kerja = datetime.datetime.strptime(row[4], "%m/%d/%Y %H:%M")
+#             # tetete = [
+#             #   sysdate
+#             # ]
+#         # return redirect('/tabel-karyawan')
+#         return jsonify(print(csv_reader))
+#     return render_template('/karyawan/uploadFileKaryawan.html')
+  
+  
+@app.route('/uploadfiles_excel', methods=['POST', 'GET'])   # Reading data from CSV and save to mysql using sqlalchemy
+# Get the uploaded files
+def uploadfiles_excel():
+  if request.method == 'POST':
+    excel_file = request.files['file']
+    # csv_file = os.path.abspath(os.path.dirname(__file__))
+    book = xlrd.open_workbook(file_contents=excel_file.read())
+    # book = xlrd.open_workbook(r'C:\xampp\htdocs\python\coba_read_write_excel\testing.xls')
+    # print("The number of worksheets is {0}".format(book.nsheets))
+    # print("Worksheet name(s): {0}".format(book.sheet_names()))
+    sh = book.sheet_by_index(0)
+    # print("{0} {1} {2}".format(sh.name, sh.nrows, sh.ncols))
+    print("Cell row1 , col 1 == {0}".format(sh.cell_value(rowx=1, colx=1)))
+    for row in range(sh.nrows):
+      # tes = sh.cell_value(rowx=row, colx=0)
+      sysdate = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+      seconds = (sh.cell_value(rowx=row, colx=4) - 25569) * 86400.0
+      v_tgl_kerja = datetime.datetime.utcfromtimestamp(seconds).strftime('%Y-%m-%dT%H:%M:%S')
+      # datetime.datetime(2018, 1, 11, 0, 0)
+      new_menu = modelKaryawan.zzz_dummy_table(nik=sh.cell_value(rowx=row, colx=0), first_name=sh.cell_value(rowx=row, colx=1), last_name=sh.cell_value(rowx=row, colx=2), golongan=sh.cell_value(rowx=row, colx=3), tgl_kerja=v_tgl_kerja,  status_aktif=sh.cell_value(rowx=row, colx=5), tgl_input=sysdate, note='')
+      db.session.add(new_menu)
+      db.session.commit()
+    # return jsonify(v_tgl_kerja)
+    return redirect('/tabel-karyawan')
+  return render_template('/karyawan/uploadFileKaryawan_excel.html')
 
 
 
+
+
+# --------------------------------- EXPORT
+@app.route('/downloadfiles_csv')
+def downloadfile_csv():
+	# try:
+		cur = mysql.connection.cursor(curMysql)
+		
+		cur.execute('''SELECT a.nik, a.first_name, a.last_name, a.golongan, DATE_FORMAT(a.tgl_kerja, '%m-%d-%Y %H:%i:%s') as tgl_kerja, 
+                b.status as status_aktif, 
+                DATE_FORMAT(a.tgl_input, '%m-%d-%Y %H:%i:%s') as tgl_input
+                FROM zzz_dummy_table a , zzz_dummy_sts_aktif b
+                WHERE a.status_aktif = b.id_status 
+                ORDER BY a.nik''') 
+		result = cur.fetchall()
+
+		output = io.StringIO()
+		writer = csv.writer(output)
+		
+		line = ['nik, First Name, Last Name, Golongan, Tgl Kerja, Status Aktif, Tgl Input']
+		writer.writerow(line)
+
+		for row in result:
+			line = [str(row['nik']) + ',' + row['first_name'] + ',' + row['last_name'] + ',' + row['golongan'] + ',' + row['tgl_kerja'] + ',' + row['status_aktif'] + ',' + row['tgl_input'] ]
+			writer.writerow(line)
+
+		output.seek(0)
+		
+		return Response(output, mimetype="text/csv", headers={"Content-Disposition":"attachment;filename=employee_report.csv"})
+# cur.close() 
+	# except Exception as e:
+	# 	print(e)
+	
+		
+
+  
+  
+# ====================================== Export to excel
+@app.route('/downloadfiles_excel')
+def downloadfile_excel():
+  # return redirect(url_for('tabelGaji'))
+
+    ## create a random Pandas dataframe
+    # df_1 = pd.DataFrame(np.random.randint(0,10,size=(10, 4)), columns=list('ABCD'))
+    cur = mysql.connection.cursor()     # akses ke database
+    cur = ('''SELECT a.nik, a.first_name, a.last_name, a.golongan, a.tgl_kerja, b.status as status_aktif, a.tgl_input 
+                FROM zzz_dummy_table a , zzz_dummy_sts_aktif b
+                WHERE a.status_aktif = b.id_status 
+                ORDER BY a.nik''')   # sementara tanpa filter dulu, jadi export whole data from some table 
+    data = cur.fetchall()
+    
+    #create an output stream
+    output = io.StringIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+
+    #taken from the original question
+    df_1.to_excel(writer, startrow = 0, merge_cells = False, sheet_name = "Sheet_1")
+    workbook = writer.book
+    worksheet = writer.sheets["Sheet_1"]    # penamaan sheet
+    format = workbook.add_format()          #
+    format.set_bg_color('#eeeeee')          # set default color
+    worksheet.set_column(1,9,28)            # set column size
+
+    #the writer has done its job
+    writer.close()
+
+    #go back to the beginning of the stream
+    output.seek(0)
+
+    #finally return the file
+    return send_file(output, attachment_filename="testing.xlsx", as_attachment=True)
+  
+  
+  
   
 # -------------------------------------
+# @app.route('/karyawan-import-excel-india')
+# def import_excel():
+#   try:
+#     # df = pd.read_csv(r'C:\xampp\htdocs\python\coba_read_write_excel\testing.csv')
+#     # df = pd.read_excel(r'C:\xampp\htdocs\python\coba_read_write_excel\testing.xlsx')
+#     # data = df.to_dict()  
+#     # loc = (r'C:\xampp\htdocs\python\coba_read_write_excel\testing.xls')
+    
+#     l = list()
+#     a = xlrd.open_workbook_xls(r'C:\xampp\htdocs\python\coba_read_write_excel\testing.xls')
+#     sheet = a.sheet_by_index(0)   # ini adalah sheet di paling kiri atau sheet ke 0
+    
+#     sheet.cell_value(0,0) 
+    
+    
+#     for i in range(1,3) :   # dimulai dari baris ke 1, karena baris ke 0 adalah judul. judul tidak di save di database
+#       l.append(tuple(sheet.row_values(i)))
 
-@app.route('/karyawan-import-csv')
-def import_csv():
-  # df = pd.read_csv(r'C:\xampp\htdocs\python\coba_read_write_excel\testing.csv')
-  df = pd.read_csv(r'C:\xampp\htdocs\python\coba_read_write_excel\testing.csv')
-  return df.to_string()
-
-@app.route('/karyawan-import-excel-india')
-def import_excel():
-  try:
-    # df = pd.read_csv(r'C:\xampp\htdocs\python\coba_read_write_excel\testing.csv')
-    # df = pd.read_excel(r'C:\xampp\htdocs\python\coba_read_write_excel\testing.xlsx')
-    # data = df.to_dict()  
-    # loc = (r'C:\xampp\htdocs\python\coba_read_write_excel\testing.xls')
-    
-    l = list()
-    a = xlrd.open_workbook_xls(r'C:\xampp\htdocs\python\coba_read_write_excel\testing.xls')
-    sheet = a.sheet_by_index(0)   # ini adalah sheet di paling kiri atau sheet ke 0
-    
-    sheet.cell_value(0,0) 
-    
-    
-    for i in range(1,3) :   # dimulai dari baris ke 1, karena baris ke 0 adalah judul. judul tidak di save di database
-      l.append(tuple(sheet.row_values(i)))
-
-    # cur = mysql.connection.cursor(curMysql)
-    # q = "INSERT INTO zzz_customers (name, address) VALUES (%s, %s)"
-    # cur.executemany(q, l)
-    # mysql.connection.commit() 
+#     # cur = mysql.connection.cursor(curMysql)
+#     # q = "INSERT INTO zzz_customers (name, address) VALUES (%s, %s)"
+#     # cur.executemany(q, l)
+#     # mysql.connection.commit() 
       
-    return jsonify(l)
-    # return data['first_name']['0']
-  except Exception as e:
-    print(e)
+#     return jsonify(l)
+#     # return data['first_name']['0']
+#   except Exception as e:
+#     print(e)
     
-    
-  
-
-# @app.route('/karyawan-import-tes')
-# def testok():
-#   # df = pd.read_excel(r'C:\xampp\htdocs\python\coba_read_write_excel\testing.xlsx', header=0)
-#   # data = df.to_dict()     # pie carane ngubah to_dict ke list ?
-#   # datalist = data.get('first_name')
-#   # datalist2 = list()
-  
-#   # for i in range(1):
-#   #   datalist2.append(datalist)
-  
-#   # indek_fn = [
-#   #   datalist3
-#   # ]
-  
-#   D = {
-#       "first_name": {
-#         "0": "OBELISK", 
-#         "1": "RA"
-#       }, 
-#       "golongan": {
-#         "0": 88, 
-#         "1": 99
-#       }, 
-#       "last_name": {
-#         "0": "GOD", 
-#         "1": "GOD"
-#       }, 
-#       "nik": {
-#         "0": 666679, 
-#         "1": 666678
-#       }, 
-#       "status_aktif": {
-#         "0": 1, 
-#         "1": 1
-#       }, 
-#       "tgl_kerja": {
-#         "0": "Sat, 20 Nov 2021 16:28:00 GMT", 
-#         "1": "Thu, 25 Nov 2021 16:28:00 GMT"
-#       }
-#     }
-  
-#   for id, info in D.items():
-#     ("\nEmployee ID:", id)
-#     for key in info:
-#         (key + ':', info[key])
-    
-#   return jsonify(tes+':'+tes2)
-
-
-# def formatArray(datas):
-#   array = []  
-#   for i in datas:
-#     array.append(singleObject(i)) # INGAT pelajaran di w3school tentang Lists, Tuples, Sets, DIctionaries ? nah ini method yang ada di Lists
-#                     # menambahkan di arraynya
-#                     # membuat Function singleDosen dulu
-#   return array
-  
-  
-# function format untuk menampilkan Dosen
-def singleObject(data):
-  data={
-    'first_name':data.get('first_name')
-  }
-  return data
-
-
-# function format untuk menampilkan Dosen
-# def singleObject(data):
-#   data={
-#     'id':data.id,
-#     'nidn':data.nidn,
-#     'nama':data.nama,
-#     'phone':data.phone,
-#     'alamat':data.alamat
-#   }
-#   return data
-  
-  
+     
 
 # @app.route("/karyawan-export-excel", methods=['GET'])     # Cara lain tapi belum jadi
 # def docustomexport():
