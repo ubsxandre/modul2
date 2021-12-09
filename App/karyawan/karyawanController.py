@@ -1,8 +1,14 @@
 from flask.helpers import url_for
 from werkzeug.utils import redirect
-from App import app, response, mysql, curMysql
+from App import app, response, mysql, curMysql, db
+from App.karyawan import modelKaryawan
 from App.gaji import gajiController
-from flask import request, jsonify
+from flask import request, jsonify, Response, flash, render_template, send_file
+from io import BytesIO, TextIOWrapper
+import numpy as np
+import pandas as pd
+import xlrd, csv, os, datetime
+import io
 
 
 
@@ -236,7 +242,125 @@ def deleteKaryawan(nik):
       return response.success(nik, "Data berhasil dihapus !!!")
   except Exception as e:
     print(e)
+
+
+
+
     
+    
+##      IMPORT DAN EXPORT 
+# ===================================== IMPORT (CSV)    
+def transform(text_file_contents):
+    return text_file_contents.replace("=", ",")
+
+def uploadfiles_csv():
+    if request.method == 'POST':
+        csv_file = request.files['file']    # nama file yang di upload menggunakan form di HTML
+        csv_file = TextIOWrapper(csv_file, encoding='utf-8')    # wrapper
+        csv_reader = csv.reader(csv_file, delimiter=',')        # jadi kalau csv kan pemisahan kolomnya menggunakan koma (delimiternya). Untuk baca delimiternya itu lho
+        for row in csv_reader:              # looping untuk membaca data dari csv per cell nya
+            sysdate = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')     
+            v_tgl_kerja = datetime.datetime.strptime(row[4], "%m/%d/%Y %H:%M")
+            # tetete = [
+            #   sysdate
+            # ]
+            new_menu = modelKaryawan.zzz_dummy_table(nik=row[0], first_name=row[1], last_name=row[2], golongan=row[3], tgl_kerja=v_tgl_kerja,  status_aktif=row[5], tgl_input=sysdate, note='')
+            db.session.add(new_menu)
+            db.session.commit()
+        return redirect('/tabel-karyawan')
+        # return jsonify(v_tgl_kerja)
+    # return render_template('/karyawan/uploadFileKaryawan.html')
+  
+  
+
+# ===================================== IMPORT (Excel)   
+def uploadfiles_excel():
+  if request.method == 'POST':
+    excel_file = request.files['file']
+    # csv_file = os.path.abspath(os.path.dirname(__file__))
+    book = xlrd.open_workbook(file_contents=excel_file.read())
+    # book = xlrd.open_workbook(r'C:\xampp\htdocs\python\coba_read_write_excel\testing.xls')
+    # print("The number of worksheets is {0}".format(book.nsheets))
+    # print("Worksheet name(s): {0}".format(book.sheet_names()))
+    sh = book.sheet_by_index(0)
+    # print("{0} {1} {2}".format(sh.name, sh.nrows, sh.ncols))
+    print("Cell row1 , col 1 == {0}".format(sh.cell_value(rowx=1, colx=1)))
+    for row in range(sh.nrows):
+      # tes = sh.cell_value(rowx=row, colx=0)
+      sysdate = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+      seconds = (sh.cell_value(rowx=row, colx=4) - 25569) * 86400.0
+      v_tgl_kerja = datetime.datetime.utcfromtimestamp(seconds).strftime('%Y-%m-%dT%H:%M:%S')
+      # datetime.datetime(2018, 1, 11, 0, 0)
+      new_menu = modelKaryawan.zzz_dummy_table(nik=sh.cell_value(rowx=row, colx=0), first_name=sh.cell_value(rowx=row, colx=1), last_name=sh.cell_value(rowx=row, colx=2), golongan=sh.cell_value(rowx=row, colx=3), tgl_kerja=v_tgl_kerja,  status_aktif=sh.cell_value(rowx=row, colx=5), tgl_input=sysdate, note='')
+      db.session.add(new_menu)
+      db.session.commit()
+    # return jsonify(v_tgl_kerja)
+    return redirect('/tabel-karyawan')
+  # return render_template('/karyawan/uploadFileKaryawan_excel.html')
+  
+  
+  
+# ===================================== EXPORT (csv)  
+def downloadfile_csv():
+		cur = mysql.connection.cursor(curMysql)
+		
+		cur.execute('''SELECT a.nik, a.first_name, a.last_name, a.golongan, DATE_FORMAT(a.tgl_kerja, '%m-%d-%Y %H:%i:%s') as tgl_kerja, 
+                b.status as status_aktif, 
+                DATE_FORMAT(a.tgl_input, '%m-%d-%Y %H:%i:%s') as tgl_input
+                FROM zzz_dummy_table a , zzz_dummy_sts_aktif b
+                WHERE a.status_aktif = b.id_status 
+                ORDER BY a.nik''') 
+		result = cur.fetchall()
+
+		output = io.StringIO()
+		writer = csv.writer(output)
+		
+		line = ['nik, First Name, Last Name, Golongan, Tgl Kerja, Status Aktif, Tgl Input']
+		writer.writerow(line)
+
+		for row in result:
+			line = [str(row['nik']) + ',' + row['first_name'] + ',' + row['last_name'] + ',' + row['golongan'] + ',' + row['tgl_kerja'] + ',' + row['status_aktif'] + ',' + row['tgl_input'] ]
+			writer.writerow(line)
+
+		output.seek(0)
+		
+		return Response(output, mimetype="text/csv", headers={"Content-Disposition":"attachment;filename=employee_report.csv"})
+
+
+# ====================================== EXPORT (Excel)
+@app.route('/downloadfiles_excel')
+def downloadfile_excel():
+  # return redirect(url_for('tabelGaji'))
+
+    ## create a random Pandas dataframe
+    # df_1 = pd.DataFrame(np.random.randint(0,10,size=(10, 4)), columns=list('ABCD'))
+    cur = mysql.connect
+    df_1 = pd.read_sql_query('''SELECT a.nik, a.first_name, a.last_name, a.golongan, a.tgl_kerja, b.status as status_aktif, a.tgl_input 
+                FROM zzz_dummy_table a , zzz_dummy_sts_aktif b
+                WHERE a.status_aktif = b.id_status 
+                ORDER BY a.nik''', cur)   # sementara tanpa filter dulu, jadi export whole data from some table 
+
+    #create an output stream
+    output = BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+
+    #taken from the original question
+    df_1.to_excel(writer, startrow = 0, merge_cells = False, sheet_name = "Sheet_1")
+    workbook = writer.book
+    worksheet = writer.sheets["Sheet_1"]    # penamaan sheet
+    format = workbook.add_format()          #
+    format.set_bg_color('#eeeeee')          # set default color
+    worksheet.set_column(1,9,28)            # set column size
+
+    #the writer has done its job
+    writer.close()
+
+    #go back to the beginning of the stream
+    output.seek(0)
+
+    #finally return the file
+    return send_file(output, attachment_filename="testing.xlsx", as_attachment=True)
+  
   
 
 
