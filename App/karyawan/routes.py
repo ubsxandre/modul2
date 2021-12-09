@@ -1,18 +1,25 @@
-from MySQLdb import DATETIME
+import datetime
+from typing import List, Set
+# from MySQLdb import DATETIME
+from flask import json
 from flask.json import dump
-from App import app  # --- import app(variable) dari file App/_init_.py yang sudah di deklarasi yang akan di gunakan di route --- #
-from App import mysql, curMysql
-from App.karyawan import karyawanController
+from werkzeug.utils import validate_arguments
+from App import app, mysql, curMysql, response, db  # --- import app(variable) dari file App/_init_.py yang sudah di deklarasi yang akan di gunakan di route --- #
+from App.karyawan import karyawanController, modelKaryawan
+from App.response import success
 from flask import render_template, url_for, redirect, request, flash, send_file, jsonify
 # from flask_mysqldb import MySQL # library untuk konek ke MySQL
 # import MySQLdb.cursors
 import numpy as np
 import pandas as pd
-# import xlrd
+import xlrd, csv
 # import xlsxwriter
 # import flask_excel as excel
 # import pyexcel as p
-from io import BytesIO
+from io import BytesIO, TextIOWrapper
+
+
+
 
 # mysql = MySQL(app)
 
@@ -182,12 +189,152 @@ def exprt_excel():
 
     #finally return the file
     return send_file(output, attachment_filename="testing.xlsx", as_attachment=True)
+
+
+# --------------------------------- import excel
+
+def transform(text_file_contents):
+    return text_file_contents.replace("=", ",")
+
+
+@app.route('/uploadfiles', methods=['POST', 'GET'])
+# Get the uploaded files
+def uploadfiles():
+    if request.method == 'POST':
+        csv_file = request.files['file']
+        csv_file = TextIOWrapper(csv_file, encoding='utf-8')
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        for row in csv_reader:
+            sysdate = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+            v_tgl_kerja = datetime.datetime.strptime(row[4], "%m/%d/%Y %H:%M")
+            # tetete = [
+            #   sysdate
+            # ]
+            new_menu = modelKaryawan.zzz_dummy_table(nik=row[0], first_name=row[1], last_name=row[2], golongan=row[3], tgl_kerja=v_tgl_kerja,  status_aktif=row[5], tgl_input=sysdate, note='')
+            db.session.add(new_menu)
+            db.session.commit()
+        return redirect('/tabel-karyawan')
+        # return jsonify(v_tgl_kerja)
+    return render_template('/karyawan/uploadFileKaryawan.html')
+
+
+
+  
+# -------------------------------------
+
+@app.route('/karyawan-import-csv')
+def import_csv():
+  # df = pd.read_csv(r'C:\xampp\htdocs\python\coba_read_write_excel\testing.csv')
+  df = pd.read_csv(r'C:\xampp\htdocs\python\coba_read_write_excel\testing.csv')
+  return df.to_string()
+
+@app.route('/karyawan-import-excel-india')
+def import_excel():
+  try:
+    # df = pd.read_csv(r'C:\xampp\htdocs\python\coba_read_write_excel\testing.csv')
+    # df = pd.read_excel(r'C:\xampp\htdocs\python\coba_read_write_excel\testing.xlsx')
+    # data = df.to_dict()  
+    # loc = (r'C:\xampp\htdocs\python\coba_read_write_excel\testing.xls')
+    
+    l = list()
+    a = xlrd.open_workbook_xls(r'C:\xampp\htdocs\python\coba_read_write_excel\testing.xls')
+    sheet = a.sheet_by_index(0)   # ini adalah sheet di paling kiri atau sheet ke 0
+    
+    sheet.cell_value(0,0) 
+    
+    
+    for i in range(1,3) :   # dimulai dari baris ke 1, karena baris ke 0 adalah judul. judul tidak di save di database
+      l.append(tuple(sheet.row_values(i)))
+
+    # cur = mysql.connection.cursor(curMysql)
+    # q = "INSERT INTO zzz_customers (name, address) VALUES (%s, %s)"
+    # cur.executemany(q, l)
+    # mysql.connection.commit() 
+      
+    return jsonify(l)
+    # return data['first_name']['0']
+  except Exception as e:
+    print(e)
+    
+    
   
 
-# @app.route('/karyawan-import-excel')
-# def import_excel():
-#   df = pd.read_excel(r'C:/xampp/htdocs/python/coba_read_write_excel/testing.xlsx', sheet_name='Sheet_1')
-#   returns.head()
+# @app.route('/karyawan-import-tes')
+# def testok():
+#   # df = pd.read_excel(r'C:\xampp\htdocs\python\coba_read_write_excel\testing.xlsx', header=0)
+#   # data = df.to_dict()     # pie carane ngubah to_dict ke list ?
+#   # datalist = data.get('first_name')
+#   # datalist2 = list()
+  
+#   # for i in range(1):
+#   #   datalist2.append(datalist)
+  
+#   # indek_fn = [
+#   #   datalist3
+#   # ]
+  
+#   D = {
+#       "first_name": {
+#         "0": "OBELISK", 
+#         "1": "RA"
+#       }, 
+#       "golongan": {
+#         "0": 88, 
+#         "1": 99
+#       }, 
+#       "last_name": {
+#         "0": "GOD", 
+#         "1": "GOD"
+#       }, 
+#       "nik": {
+#         "0": 666679, 
+#         "1": 666678
+#       }, 
+#       "status_aktif": {
+#         "0": 1, 
+#         "1": 1
+#       }, 
+#       "tgl_kerja": {
+#         "0": "Sat, 20 Nov 2021 16:28:00 GMT", 
+#         "1": "Thu, 25 Nov 2021 16:28:00 GMT"
+#       }
+#     }
+  
+#   for id, info in D.items():
+#     ("\nEmployee ID:", id)
+#     for key in info:
+#         (key + ':', info[key])
+    
+#   return jsonify(tes+':'+tes2)
+
+
+# def formatArray(datas):
+#   array = []  
+#   for i in datas:
+#     array.append(singleObject(i)) # INGAT pelajaran di w3school tentang Lists, Tuples, Sets, DIctionaries ? nah ini method yang ada di Lists
+#                     # menambahkan di arraynya
+#                     # membuat Function singleDosen dulu
+#   return array
+  
+  
+# function format untuk menampilkan Dosen
+def singleObject(data):
+  data={
+    'first_name':data.get('first_name')
+  }
+  return data
+
+
+# function format untuk menampilkan Dosen
+# def singleObject(data):
+#   data={
+#     'id':data.id,
+#     'nidn':data.nidn,
+#     'nama':data.nama,
+#     'phone':data.phone,
+#     'alamat':data.alamat
+#   }
+#   return data
   
   
 

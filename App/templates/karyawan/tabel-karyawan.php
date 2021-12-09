@@ -85,8 +85,12 @@
   
   <button type="button" class="btn badge-pill badge-primary" data-toggle="modal" data-target="#myModal" > Tambah karyawan</button>
   <a type="button" class="btn badge-pill badge-info" href="/karyawan-export-excel" > Export to Excel</a>
+  <a type="button" class="btn badge-pill badge-secondary" href="/uploadfiles" > Import from Excel</a>
+
+  
   
   <div>
+  <br>
     <table class="table table-striped">
       <thead>
         <tr>
