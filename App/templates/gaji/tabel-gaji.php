@@ -63,12 +63,13 @@
   <h2>Tabel Gaji</h2>
   
   <button type="button" class="btn badge-pill badge-primary" data-toggle="modal" data-target="#myModal" > Tambah daftar gaji</button>
-  <a type="button" class="btn badge-pill badge-info" href="/downloadfiles_csv" > Export to CSV</a>
-  <a type="button" class="btn badge-pill badge-info" href="/downloadfiles_excel" > Export to Excel</a>
-  <a type="button" class="btn badge-pill badge-secondary" href="/uploadfiles_csv" > Import from CSV</a>
+  <a type="button" class="btn badge-pill badge-info" href="/downloadfilesGaji_csv" > Export to CSV</a>
+  <a type="button" class="btn badge-pill badge-info" href="/downloadfilesGaji_excel" > Export to Excel</a>
+  <a type="button" class="btn badge-pill badge-secondary" href="/uploadfilesGaji_csv" > Import from CSV</a>
   <a type="button" class="btn badge-pill badge-secondary" href="/uploadfiles_excel" > Import from Excel</a>
   
   <div>
+    <br>
     <table class="table table-striped">
       <thead>
         <tr>

@@ -5,10 +5,7 @@ from App.karyawan import modelKaryawan
 from App.gaji import gajiController
 from flask import request, jsonify, Response, flash, render_template, send_file
 from io import BytesIO, TextIOWrapper
-import numpy as np
-import pandas as pd
-import xlrd, csv, os, datetime
-import io
+import numpy as np, pandas as pd, xlrd, csv, os, datetime, io
 
 
 
@@ -328,7 +325,6 @@ def downloadfile_csv():
 
 
 # ====================================== EXPORT (Excel)
-@app.route('/downloadfiles_excel')
 def downloadfile_excel():
   # return redirect(url_for('tabelGaji'))
 
@@ -360,6 +356,13 @@ def downloadfile_excel():
 
     #finally return the file
     return send_file(output, attachment_filename="testing.xlsx", as_attachment=True)
+  
+  
+  
+  
+  
+  
+  ### IMPORT DAN EXPORT UNTUK REPORT
   
   
 

@@ -147,7 +147,7 @@ def update():
 def report_gaji_karyawan():             # function untuk menampilkan data hasil combine dari tabel karyawan dan tabel gaji
   cur = mysql.connection.cursor()
   cur.execute('''SELECT a.NIK,
-                CONCAT(a.FIRST_NAME, a.LAST_NAME) AS NAMA,
+                CONCAT(a.FIRST_NAME , a.LAST_NAME) AS NAMA,
                 a.GOLONGAN,
                 b.TANGGAL_GAJIAN,
                 b.GAJI_KE,

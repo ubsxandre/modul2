@@ -114,3 +114,31 @@ def semoga_lebih_baik():
     # Show registration form with message (if any)
         return redirect(url_for('tabelGaji'))
 
+
+### Reading data from Excel and csv
+## --------------------------- Import from csv
+@app.route('/uploadfilesGaji_csv', methods=['POST', 'GET'])   # Reading data from CSV and save to mysql using sqlalchemy
+# Get the uploaded files
+def importGaji_csv():
+  if request.method == 'POST':
+    return gajiController.uploadfilesGaji_csv()
+  return render_template('/gaji/uploadFileGaji_csv.html')
+
+# ## --------------------------- Import from Excel
+# @app.route('/uploadfiles_excel', methods=['POST', 'GET'])   # Reading data from CSV and save to mysql using sqlalchemy
+# # Get the uploaded files
+# def import_excel():
+#   if request.method == 'POST':
+#     return gajiController.uploadfiles_excel()
+#   return render_template('/karyawan/uploadFileKaryawan_excel.html')
+
+## --------------------------- Export to csv
+@app.route('/downloadfilesGaji_csv')
+def exportGaji_csv():
+  return gajiController.downloadfileGaji_csv()
+  
+  
+## --------------------------- Export to excel
+@app.route('/downloadfilesGaji_excel')
+def exportGaji_exc():
+  return gajiController.downloadfileGaji_excel()
