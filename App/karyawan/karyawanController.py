@@ -262,6 +262,7 @@ def uploadfiles_csv():
         readFileExt(csv_file_name)
         csv_file = TextIOWrapper(csv_file, encoding='utf-8')    # wrapper
         csv_reader = csv.reader(csv_file, delimiter=',')        # jadi kalau csv kan pemisahan kolomnya menggunakan koma (delimiternya). Untuk baca delimiternya itu lho
+        next(csv_reader)  # skip baris pertama
         for row in csv_reader:              # looping untuk membaca data dari csv per cell nya
             sysdate = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')     
             v_tgl_kerja = datetime.datetime.strptime(row[4], "%m/%d/%Y %H:%M")
@@ -288,7 +289,7 @@ def uploadfiles_excel():
     sh = book.sheet_by_index(0)
     # print("{0} {1} {2}".format(sh.name, sh.nrows, sh.ncols))
     print("Cell row1 , col 1 == {0}".format(sh.cell_value(rowx=1, colx=1)))
-    for row in range(sh.nrows):
+    for row in range(1, sh.nrows):
       # tes = sh.cell_value(rowx=row, colx=0)
       sysdate = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
       seconds = (sh.cell_value(rowx=row, colx=4) - 25569) * 86400.0
@@ -407,7 +408,7 @@ def downloadfile_csv_report():
   
   
   
-  # ===================================== EXPORT (csv report)  
+  # ===================================== EXPORT (Excel report)  
   def downloadfile_excel():
   # return redirect(url_for('tabelGaji'))
 
