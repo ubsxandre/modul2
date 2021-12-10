@@ -234,20 +234,25 @@ def karsGaji(nik):
   
 ### Reading data from Excel and csv
 ## --------------------------- Import from csv
-@app.route('/uploadfiles_csv', methods=['POST', 'GET'])   # Reading data from CSV and save to mysql using sqlalchemy
+@app.route('/uploadfiles_karyawan', methods=['POST', 'GET'])   # Reading data from CSV and save to mysql using sqlalchemy
 # Get the uploaded files
 def import_csv():
-  if request.method == 'POST':
+  if request.method == 'POST' and karyawanController.readFileExt(request.files['file'].filename) == '.csv' :
     return karyawanController.uploadfiles_csv()
+  elif request.method == 'POST' and karyawanController.readFileExt(request.files['file'].filename) == '.xls':
+    return karyawanController.uploadfiles_excel()
+  elif request.method == 'POST' and (karyawanController.readFileExt(request.files['file'].filename) != '.csv' or request.method == 'POST' and karyawanController.readFileExt(request.files['file'].filename) != '.xls'):
+    flash('Hanya bisa upload data dengan format .csv dan .xls')
+    return render_template('/karyawan/uploadFileKaryawan.html')  
   return render_template('/karyawan/uploadFileKaryawan.html')
 
 ## --------------------------- Import from Excel
-@app.route('/uploadfiles_excel', methods=['POST', 'GET'])   # Reading data from CSV and save to mysql using sqlalchemy
-# Get the uploaded files
-def import_excel():
-  if request.method == 'POST':
-    return karyawanController.uploadfiles_excel()
-  return render_template('/karyawan/uploadFileKaryawan_excel.html')
+# @app.route('/uploadfiles_excel', methods=['POST', 'GET'])   # Reading data from CSV and save to mysql using sqlalchemy
+# # Get the uploaded files
+# def import_excel():
+#   if request.method == 'POST':
+#     return karyawanController.uploadfiles_excel()
+#   return render_template('/karyawan/uploadFileKaryawan_excel.html')
 
 ## --------------------------- Export to csv
 @app.route('/downloadfiles_csv')
@@ -259,3 +264,10 @@ def export_csv():
 @app.route('/downloadfiles_excel')
 def export_exc():
   return karyawanController.downloadfile_excel()
+
+
+## =========================== Report / combine data
+## --------------------------- Export to csv - Report
+@app.route('/downloadfiles_csv_report')
+def export_csv_report():
+  return karyawanController.downloadfile_csv_report()

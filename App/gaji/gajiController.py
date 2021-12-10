@@ -1,3 +1,4 @@
+from flask.helpers import flash
 from App import app, response, mysql, curMysql, db
 from App.gaji import modelGaji
 from flask import request, jsonify, send_file, Response, redirect
@@ -60,6 +61,7 @@ def transform(text_file_contents):
 def uploadfilesGaji_csv():
     if request.method == 'POST':
         csv_file = request.files['file']    # nama file yang di upload menggunakan form di HTML
+        csv_file_name = request.files['file'].filename
         csv_file = TextIOWrapper(csv_file, encoding='utf-8')    # wrapper
         csv_reader = csv.reader(csv_file, delimiter=',', )        # jadi kalau csv kan pemisahan kolomnya menggunakan koma (delimiternya). Untuk baca delimiternya itu lho
         for row in csv_reader:              # looping untuk membaca data dari csv per cell nya
@@ -69,6 +71,7 @@ def uploadfilesGaji_csv():
             new_menu = modelGaji.zzz_dummy_salary(nik=row[0], tanggal_gajian=v_tgl_gajian, gaji_ke=row[2], salary=row[3])
             db.session.add(new_menu)
             db.session.commit()
+        flash(csv_file_name + ' Berhasil di upload!!!')
         return redirect('/tabel-gaji')
         # return jsonify(v_tgl_gajian)
     # return render_template('/karyawan/uploadFileKaryawan.html')
@@ -79,6 +82,7 @@ def uploadfilesGaji_csv():
 def uploadfilesGaji_excel():
   if request.method == 'POST':
     excel_file = request.files['file']
+    excel_file_name = request.files['file'].filename
     # csv_file = os.path.abspath(os.path.dirname(__file__))
     book = xlrd.open_workbook(file_contents=excel_file.read())
     # book = xlrd.open_workbook(r'C:\xampp\htdocs\python\coba_read_write_excel\testing.xls')
@@ -93,9 +97,10 @@ def uploadfilesGaji_excel():
       # seconds = (sh.cell_value(rowx=row, colx=4) - 25569) * 86400.0
       # v_tgl_kerja = datetime.datetime.utcfromtimestamp(seconds).strftime('%Y-%m-%dT%H:%M:%S')
       # datetime.datetime(2018, 1, 11, 0, 0)
-      new_menu = modelGaji.zzz_dummy_table(nik=sh.cell_value(rowx=row, colx=0), tanggal_gajian=sh.cell_value(rowx=row, colx=1), gaji_ke=sh.cell_value(rowx=row, colx=2), salary=sh.cell_value(rowx=row, colx=3))
+      new_menu = modelGaji.zzz_dummy_salary(nik=sh.cell_value(rowx=row, colx=0), tanggal_gajian=sh.cell_value(rowx=row, colx=1), gaji_ke=sh.cell_value(rowx=row, colx=2), salary=sh.cell_value(rowx=row, colx=3))
       db.session.add(new_menu)
       db.session.commit()
+    flash(excel_file_name + ' Berhasil di upload!!!')
     # return jsonify(v_tgl_kerja)
     return redirect('/tabel-gaji')
   # return render_template('/karyawan/uploadFileKaryawan_excel.html')

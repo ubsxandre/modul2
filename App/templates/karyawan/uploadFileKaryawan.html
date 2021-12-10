@@ -8,15 +8,18 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
-  <div class="content">
-  <br>
-    <h5 style="text-align: left">Import from CSV</h5>
-    <div class="form" >
-        <form  method="POST" action="/uploadfiles_csv" enctype="multipart/form-data" >
-            Upload a csv file: <input type='file' name='file'>
-            <input type='submit' value='Upload'>
-          </form>
-    </div>
+  <div class="container">
+    <div class="content">
+      <br>
+        <h5 style="text-align: left">Import from CSV</h5>
+        <div class="form" >
+            <form  method="POST" action="/uploadfiles_karyawan" enctype="multipart/form-data" >
+                Upload a csv file: <input type='file' name='file'>
+                <input type='submit' value='Upload'>
+              </form>
+        </div>
+      </div>
   </div>
+    
 
 {% endblock %}

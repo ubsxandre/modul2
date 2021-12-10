@@ -1,6 +1,8 @@
 from App import app  # --- import app(variable) dari file App/_init_.py yang sudah di deklarasi yang akan di gunakan di route --- #
 from App import mysql, curMysql
 from App.gaji import gajiController
+from App.karyawan import karyawanController
+from App.karyawan.karyawanController import readFileExt
 from flask import render_template, url_for, redirect, request, flash
 # from flask_mysqldb import MySQL # library untuk konek ke MySQL
 # import MySQLdb.cursors
@@ -120,16 +122,21 @@ def semoga_lebih_baik():
 @app.route('/uploadfilesGaji_csv', methods=['POST', 'GET'])   # Reading data from CSV and save to mysql using sqlalchemy
 # Get the uploaded files
 def importGaji_csv():
-  if request.method == 'POST':
+  if request.method == 'POST' and karyawanController.readFileExt(request.files['file'].filename) == '.csv' :
     return gajiController.uploadfilesGaji_csv()
+  elif request.method == 'POST' and karyawanController.readFileExt(request.files['file'].filename) == '.xls':
+    return gajiController.uploadfilesGaji_excel()
+  elif request.method == 'POST' and (karyawanController.readFileExt(request.files['file'].filename) != '.csv' or karyawanController.readFileExt(request.files['file'].filename) != '.xls'):
+    flash('Hanya bisa upload data dengan format .csv dan .xls')
+    return render_template('/gaji/uploadFileGaji_csv.html')  
   return render_template('/gaji/uploadFileGaji_csv.html')
 
 # ## --------------------------- Import from Excel
 # @app.route('/uploadfiles_excel', methods=['POST', 'GET'])   # Reading data from CSV and save to mysql using sqlalchemy
 # # Get the uploaded files
-# def import_excel():
+# def importGaji_excel():
 #   if request.method == 'POST':
-#     return gajiController.uploadfiles_excel()
+#     return gajiController.uploadfilesGaji_excel()
 #   return render_template('/karyawan/uploadFileKaryawan_excel.html')
 
 ## --------------------------- Export to csv

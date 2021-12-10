@@ -65,8 +65,7 @@
   <button type="button" class="btn badge-pill badge-primary" data-toggle="modal" data-target="#myModal" > Tambah daftar gaji</button>
   <a type="button" class="btn badge-pill badge-info" href="/downloadfilesGaji_csv" > Export to CSV</a>
   <a type="button" class="btn badge-pill badge-info" href="/downloadfilesGaji_excel" > Export to Excel</a>
-  <a type="button" class="btn badge-pill badge-secondary" href="/uploadfilesGaji_csv" > Import from CSV</a>
-  <a type="button" class="btn badge-pill badge-secondary" href="/uploadfiles_excel" > Import from Excel</a>
+  <a type="button" class="btn badge-pill badge-secondary" href="/uploadfilesGaji_csv" > Import CSV / Excel</a>
   
   <div>
     <br>

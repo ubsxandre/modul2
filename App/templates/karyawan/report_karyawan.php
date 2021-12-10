@@ -11,8 +11,12 @@
 
 <div class="container">
   <h2>Report Gaji Karyawan</h2> 
+
+  <a type="button" class="btn badge-pill badge-info" href="/downloadfiles_csv_report" > Export to CSV</a>
+  <a type="button" class="btn badge-pill badge-info" href="/downloadfiles_excel" > Export to Excel</a>
   
   <div>
+    <br>
     <table class="table table-striped">
       <thead>
         <tr>

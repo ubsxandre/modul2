@@ -246,24 +246,29 @@ def deleteKaryawan(nik):
     
     
 ##      IMPORT DAN EXPORT 
-# ===================================== IMPORT (CSV)    
+# ===================================== IMPORT (CSV)   
+def readFileExt(fileUpload):    # membaca ext
+  namaFile, namaExt = os.path.splitext(fileUpload)
+  return namaExt
+
+ 
 def transform(text_file_contents):
     return text_file_contents.replace("=", ",")
 
 def uploadfiles_csv():
     if request.method == 'POST':
-        csv_file = request.files['file']    # nama file yang di upload menggunakan form di HTML
+        csv_file = request.files['file']    # path yang di upload menggunakan form di HTML
+        csv_file_name = request.files['file'].filename   # ambil nama file dan ext yang di upload
+        readFileExt(csv_file_name)
         csv_file = TextIOWrapper(csv_file, encoding='utf-8')    # wrapper
         csv_reader = csv.reader(csv_file, delimiter=',')        # jadi kalau csv kan pemisahan kolomnya menggunakan koma (delimiternya). Untuk baca delimiternya itu lho
         for row in csv_reader:              # looping untuk membaca data dari csv per cell nya
             sysdate = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')     
             v_tgl_kerja = datetime.datetime.strptime(row[4], "%m/%d/%Y %H:%M")
-            # tetete = [
-            #   sysdate
-            # ]
             new_menu = modelKaryawan.zzz_dummy_table(nik=row[0], first_name=row[1], last_name=row[2], golongan=row[3], tgl_kerja=v_tgl_kerja,  status_aktif=row[5], tgl_input=sysdate, note='')
             db.session.add(new_menu)
             db.session.commit()
+        flash(csv_file_name + ' berhasil di upload')
         return redirect('/tabel-karyawan')
         # return jsonify(v_tgl_kerja)
     # return render_template('/karyawan/uploadFileKaryawan.html')
@@ -274,6 +279,7 @@ def uploadfiles_csv():
 def uploadfiles_excel():
   if request.method == 'POST':
     excel_file = request.files['file']
+    excel_file_name = request.files['file'].filename
     # csv_file = os.path.abspath(os.path.dirname(__file__))
     book = xlrd.open_workbook(file_contents=excel_file.read())
     # book = xlrd.open_workbook(r'C:\xampp\htdocs\python\coba_read_write_excel\testing.xls')
@@ -292,6 +298,7 @@ def uploadfiles_excel():
       db.session.add(new_menu)
       db.session.commit()
     # return jsonify(v_tgl_kerja)
+    flash(excel_file_name + ' berhasil di upload')
     return redirect('/tabel-karyawan')
   # return render_template('/karyawan/uploadFileKaryawan_excel.html')
   
@@ -363,6 +370,84 @@ def downloadfile_excel():
   
   
   ### IMPORT DAN EXPORT UNTUK REPORT
+  # ===================================== EXPORT (csv report)  
+def downloadfile_csv_report():
+  cur = mysql.connection.cursor(curMysql)
+  
+  cur.execute('''SELECT a.NIK,
+              CONCAT(a.FIRST_NAME , a.LAST_NAME) AS NAMA,
+              a.GOLONGAN,
+              DATE_FORMAT(B.TANGGAL_GAJIAN ,'%m-%d-%Y %H:%i:%s') AS TANGGAL_GAJIAN,
+              b.TANGGAL_GAJIAN,
+              b.GAJI_KE,
+              b.SALARY,
+              DATE_FORMAT(A.TGL_KERJA ,'%m-%d-%Y %H:%i:%s') AS TGL_MASUK_KERJA,
+              c.status AS STATUS_KARYAWAN
+          FROM zzz_dummy_table a, zzz_dummy_salary b, zzz_dummy_sts_aktif c
+          WHERE a.NIK = b.NIK
+            AND a.status_aktif = c.id_status
+          ORDER BY A.NIK, B.GAJI_KE;''')
+  result = cur.fetchall()
+
+  output = io.StringIO()
+  writer = csv.writer(output)
+  
+  line = ['NIK, Nama, Golongan, Tanggal Gajian, Gaji ke-, Salary, Tanggal Masuk Kerja, Status Karyawan']
+  # line = ['NIK, Nama, Golongan, Tanggal Gajian, Gaji ke -, Salary, ']
+  writer.writerow(line)
+
+  for row in result:
+    # line = [str(row['NIK']) + ',' + row['NAMA'] + ',' + row['GOLONGAN'] + ',' + row['TANGGAL_GAJIAN'] + ',' + row['GAJI_KE'] + ',' + row['SALARY'] + ',' + row['TGL_MASUK_KERJA'] + ',' + row['STATUS_KARYAWAN']]
+    line = [str(row['NIK']) + ',' + str(row['NAMA']) + ',' + row['GOLONGAN'] + ',' + row['TANGGAL_GAJIAN'] + ',' + str(row['GAJI_KE']) + ',' + str(row['SALARY']) + ',' + row['TGL_MASUK_KERJA'] + ',' + row['STATUS_KARYAWAN'] ]
+    writer.writerow(line)
+
+  output.seek(0)
+  
+  return Response(output, mimetype="text/csv", headers={"Content-Disposition":"attachment;filename=employee_salary_report.csv"})
+  
+  
+  
+  # ===================================== EXPORT (csv report)  
+  def downloadfile_excel():
+  # return redirect(url_for('tabelGaji'))
+
+    ## create a random Pandas dataframe
+    # df_1 = pd.DataFrame(np.random.randint(0,10,size=(10, 4)), columns=list('ABCD'))
+    cur = mysql.connect
+    df_1 = pd.read_sql_query('''SELECT a.NIK,
+              CONCAT(a.FIRST_NAME , a.LAST_NAME) AS NAMA,
+              a.GOLONGAN,
+              DATE_FORMAT(B.TANGGAL_GAJIAN ,'%m-%d-%Y %H:%i:%s') AS TANGGAL_GAJIAN,
+              b.TANGGAL_GAJIAN,
+              b.GAJI_KE,
+              b.SALARY,
+              DATE_FORMAT(A.TGL_KERJA ,'%m-%d-%Y %H:%i:%s') AS TGL_MASUK_KERJA,
+              c.status AS STATUS_KARYAWAN
+          FROM zzz_dummy_table a, zzz_dummy_salary b, zzz_dummy_sts_aktif c
+          WHERE a.NIK = b.NIK
+            AND a.status_aktif = c.id_status
+          ORDER BY A.NIK, B.GAJI_KE;''', cur)   # sementara tanpa filter dulu, jadi export whole data from some table 
+
+    #create an output stream
+    output = BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+
+    #taken from the original question
+    df_1.to_excel(writer, startrow = 0, merge_cells = False, sheet_name = "Sheet_1")
+    workbook = writer.book
+    worksheet = writer.sheets["Sheet_1"]    # penamaan sheet
+    format = workbook.add_format()          #
+    format.set_bg_color('#eeeeee')          # set default color
+    worksheet.set_column(1,9,28)            # set column size
+
+    #the writer has done its job
+    writer.close()
+
+    #go back to the beginning of the stream
+    output.seek(0)
+
+    #finally return the file
+    return send_file(output, attachment_filename="employee_salary_report.xlsx", as_attachment=True)
   
   
 
